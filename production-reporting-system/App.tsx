@@ -1,15 +1,10 @@
-import { View, Text } from "react-native";
+import AppNavigator from "./src/navigation/AppNavigator";
+import { ProductionProvider } from "./src/context/ProductionContext";
 
 export default function App() {
   return (
-    <View
-      style={{
-        flex: 1,
-        justifyContent: "center",
-        alignItems: "center",
-      }}
-    >
-      <Text>Daily Production Reporting System</Text>
-    </View>
+    <ProductionProvider>
+      <AppNavigator />
+    </ProductionProvider>
   );
 }
