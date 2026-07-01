@@ -38,6 +38,7 @@ export default function WelcomeScreen() {
 
   const handleAdminPortal = () => {
     console.log("Admin");
+    navigation.navigate("AdminLogin")
   };
 
   useEffect(() => {

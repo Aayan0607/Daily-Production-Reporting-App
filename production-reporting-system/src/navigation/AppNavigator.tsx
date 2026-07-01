@@ -5,6 +5,13 @@ import WelcomeScreen from "../screens/WelcomeScreen";
 import OperatorInfoScreen from "../screens/OperatorInfoScreen";
 import ProductionScreen from "../screens/ProductionScreen";
 import SummaryScreen from "../screens/SummaryScreen";
+import AdminLoginScreen from "../screens/AdminLoginScreen";
+import AdminDashboardScreen from "../screens/AdminDashboardScreen";
+import OperatorsScreen from "../screens/OperatorsScreen";
+import MachinesScreen from "../screens/MachinesScreen";
+import JobsScreen from "../screens/JobsScreen";
+import ReportsScreen from "../screens/ReportsScreen";
+import MachineStatusScreen from "../screens/MachineStatusScreen";
 const Stack = createNativeStackNavigator();
 
 export default function AppNavigator() {
@@ -35,6 +42,34 @@ export default function AppNavigator() {
                 <Stack.Screen
                     name="Summary"
                     component={SummaryScreen}
+                />
+                <Stack.Screen
+                    name="AdminLogin"
+                    component={AdminLoginScreen}
+                />
+                <Stack.Screen
+                    name="AdminDashboard"
+                    component={AdminDashboardScreen}
+                />
+                <Stack.Screen
+                    name="Operators"
+                    component={OperatorsScreen}
+                />
+                <Stack.Screen
+                    name="Machines"
+                    component={MachinesScreen}
+                />
+                <Stack.Screen
+                    name="Jobs"
+                    component={JobsScreen}
+                />
+                <Stack.Screen
+                    name="Reports"
+                    component={ReportsScreen}
+                />
+                <Stack.Screen
+                    name="MachineStatus"
+                    component={MachineStatusScreen}
                 />
             </Stack.Navigator>
         </NavigationContainer>
