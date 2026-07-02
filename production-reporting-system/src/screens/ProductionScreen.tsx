@@ -1,4 +1,5 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { supabase } from "../services/supabase";
 import {
   View,
   Text,
@@ -30,32 +31,101 @@ export default function ProductionScreen() {
 
   // Temporary dummy data
   // Later fetch from Supabase
-  const downtimeReasons = [
-    "Power Failure",
-    "Machine Breakdown",
-    "Material Shortage",
-    "Quality Issue",
-    "Operator Break",
-    "Ink Change",
-    "Tool Change",
-    "Machine Cleaning",
-    "Other",
-  ];
+  const [downtimeReasons, setDowntimeReasons] = useState<any[]>([]);
 
-  const handleStart = () => {
+  useEffect(() => {
+  loadReasons();
+}, []);
 
-    updateSession({
-      shiftStart: new Date(),
-    });
+async function loadReasons() {
+  const { data, error } = await supabase
+    .from("downtime_reasons")
+    .select("*")
+    .order("reason_code");
 
-    setStatus("RUNNING");
-  };
+  if (!error && data) {
+    setDowntimeReasons(data);
+  }
+}
+
+  const handleStart = async () => {
+
+  const startTime = new Date();
+
+  const { data: machine } = await supabase
+    .from("machines")
+    .select("id")
+    .eq("machine_code", session.machineCode)
+    .single();
+
+  const { data: job } = await supabase
+    .from("jobs")
+    .select("id, expected_quantity")
+    .eq("job_name", session.jobName)
+    .single();
+
+    if (!machine) {
+    Alert.alert("Machine not found");
+    return;
+}
+
+if (!job) {
+    Alert.alert("Job not found");
+    return;
+}
+
+  const { data: shift } = await supabase
+    .from("shifts")
+    .insert({
+      operator_id: Number(session.operatorId),
+      machine_id: machine.id,
+      shift_start: startTime,
+    })
+    .select()
+    .single();
+
+  const { data: run } = await supabase
+    .from("production_runs")
+    .insert({
+      shift_id: shift.id,
+      machine_id: machine.id,
+      operator_id: Number(session.operatorId),
+      job_id: job.id,
+      production_start: startTime,
+      expected_quantity: job.expected_quantity,
+      produced_quantity: 0,
+      waste: 0,
+      downtime_count: 0,
+      ups: Number(session.ups),
+    })
+    .select()
+    .single();
+
+  updateSession({
+    sessionId: run.id.toString(),
+    shiftStart: startTime,
+    expectedQuantity: job.expected_quantity,
+  });
+
+  await supabase
+    .from("machine_status")
+    .update({
+      operator_name: session.operatorName,
+      current_job: session.jobName,
+      ups: Number(session.ups),
+      status: "Running",
+      down_reason: null,
+    })
+    .eq("machine_id", machine.id);
+
+  setStatus("RUNNING");
+};
 
   const handleDown = () => {
     setShowReasonPicker(true);
   };
 
-  const confirmDown = () => {
+  const confirmDown = async () => {
 
     if (!selectedReason) {
       Alert.alert(
@@ -94,9 +164,23 @@ export default function ProductionScreen() {
 
     setSelectedReason("");
 
+    const { data: reason } = await supabase
+  .from("downtime_reasons")
+  .select("description")
+  .eq("id", selectedReason)
+  .single();
+
+await supabase
+  .from("machine_status")
+  .update({
+    status: "Down",
+    down_reason: reason?.description,
+  })
+  .eq("operator_name", session.operatorName);
+
   };
 
-  const handleResume = () => {
+  const handleResume = async () => {
 
     const updatedHistory = [
       ...session.downtimeHistory,
@@ -125,6 +209,14 @@ export default function ProductionScreen() {
     });
 
     setStatus("RUNNING");
+
+    await supabase
+  .from("machine_status")
+  .update({
+    status: "Running",
+    down_reason: null,
+  })
+  .eq("operator_name", session.operatorName);
 
   };
 
@@ -200,24 +292,22 @@ export default function ProductionScreen() {
             <View style={styles.picker}>
 
               <Picker
-                selectedValue={selectedReason}
-                onValueChange={setSelectedReason}
-              >
+    selectedValue={selectedReason}
+    onValueChange={(value) => setSelectedReason(value)}
+>
 
                 <Picker.Item
-                  label="Select Reason"
-                  value=""
-                />
+    label="Select Reason"
+    value={null}
+/>
 
-                {downtimeReasons.map(
-                  (reason) => (
-                    <Picker.Item
-                      key={reason}
-                      label={reason}
-                      value={reason}
-                    />
-                  )
-                )}
+                {downtimeReasons.map((reason) => (
+  <Picker.Item
+    key={reason.id}
+    label={`${reason.reason_code} - ${reason.description}`}
+    value={reason.id}
+  />
+))}
 
               </Picker>
 

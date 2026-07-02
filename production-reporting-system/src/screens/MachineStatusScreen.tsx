@@ -1,4 +1,3 @@
-import React from "react";
 import {
   View,
   Text,
@@ -8,7 +7,8 @@ import {
 
 import ScreenContainer from "../components/ScreenContainer";
 import { Colors } from "../constants/colors";
-import { machineData } from "../data/dummyData";
+import React, { useEffect, useState } from "react";
+import { supabase } from "../services/supabase";
 
 const getStatusColor = (status: string) => {
   switch (status) {
@@ -27,6 +27,38 @@ const getStatusColor = (status: string) => {
 };
 
 export default function MachineStatusScreen() {
+    const [machineData, setMachineData] = useState<any[]>([]);
+    useEffect(() => {
+    loadMachines();
+
+    const interval = setInterval(loadMachines, 5000);
+
+    return () => clearInterval(interval);
+}, []);
+
+async function loadMachines() {
+  const { data, error } = await supabase
+  .from("machine_status")
+  .select(`
+    machine_id,
+    operator_name,
+    current_job,
+    ups,
+    status,
+    down_reason,
+    updated_at,
+    machines (
+      machine_code
+    )
+  `);
+
+  if (error) {
+    console.log(error);
+    return;
+  }
+
+  setMachineData(data ?? []);
+}
   return (
     <ScreenContainer>
 
@@ -36,7 +68,7 @@ export default function MachineStatusScreen() {
 
       <FlatList
         data={machineData}
-        keyExtractor={(item) => item.id.toString()}
+        keyExtractor={(item) => String(item.machine_id)}
         showsVerticalScrollIndicator={false}
         contentContainerStyle={{ paddingBottom: 20 }}
         renderItem={({ item }) => (
@@ -44,11 +76,11 @@ export default function MachineStatusScreen() {
           <View style={styles.card}>
 
             <Text style={styles.machineCode}>
-              {item.machineCode}
-            </Text>
+  {item.machines?.machine_code ?? `Machine ${item.machine_id}`}
+</Text>
 
             <Text style={styles.operator}>
-              👤 {item.operatorName ?? "No Operator Assigned"}
+              👤 {item.operator_name ?? "No Operator Assigned"}
             </Text>
 
             <Text style={styles.label}>
@@ -56,7 +88,7 @@ export default function MachineStatusScreen() {
             </Text>
 
             <Text style={styles.value}>
-              {item.currentJob ?? "-"}
+              {item.current_job ?? "-"}
             </Text>
 
             <Text style={styles.label}>
@@ -87,7 +119,7 @@ export default function MachineStatusScreen() {
                 </Text>
 
                 <Text style={styles.reason}>
-                  {item.downReason}
+                  {item.down_reason}
                 </Text>
               </>
             )}

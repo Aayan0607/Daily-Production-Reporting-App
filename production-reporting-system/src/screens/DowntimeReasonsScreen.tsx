@@ -12,71 +12,88 @@ import {
 import ScreenContainer from "../components/ScreenContainer";
 import { Colors } from "../constants/colors";
 
-import {
-  DowntimeReason,
-  initialDowntimeReasons,
-} from "../data/downtimeReasons";
+import { useEffect } from "react";
+import { supabase } from "../services/supabase";
 
 export default function DowntimeReasonsScreen() {
-  const [reasons, setReasons] = useState(initialDowntimeReasons);
+  const [reasons, setReasons] = useState<any[]>([]);
 
   const [code, setCode] = useState("");
   const [description, setDescription] = useState("");
 
-  const addReason = () => {
-    if (!code.trim() || !description.trim()) {
-      Alert.alert("Error", "Please fill all fields.");
-      return;
-    }
+  async function loadReasons() {
+  const { data, error } = await supabase
+    .from("downtime_reasons")
+    .select("*")
+    .order("reason_code");
 
-    const exists = reasons.some(
-      (item) =>
-        item.code.toLowerCase() === code.toLowerCase()
-    );
+  if (!error && data) {
+    setReasons(data);
+  }
+}
 
-    if (exists) {
-      Alert.alert(
-        "Error",
-        "Reason code already exists."
-      );
-      return;
-    }
+useEffect(() => {
+  loadReasons();
+}, []);
 
-    const newReason: DowntimeReason = {
-      id: Date.now(),
-      code,
-      description,
-    };
+  const addReason = async () => {
 
-    setReasons([...reasons, newReason]);
+  if (!code.trim() || !description.trim()) {
+    Alert.alert("Error", "Fill all fields.");
+    return;
+  }
 
-    setCode("");
-    setDescription("");
-  };
+  const { error } = await supabase
+    .from("downtime_reasons")
+    .insert([
+      {
+        reason_code: code.trim(),
+        description: description.trim(),
+      },
+    ]);
+
+  if (error) {
+    Alert.alert("Error", error.message);
+    return;
+  }
+
+  setCode("");
+  setDescription("");
+
+  loadReasons();
+};
 
   const deleteReason = (id: number) => {
-    Alert.alert(
-      "Delete",
-      "Delete this downtime reason?",
-      [
-        {
-          text: "Cancel",
-          style: "cancel",
+
+  Alert.alert(
+    "Delete",
+    "Delete this downtime reason?",
+    [
+      {
+        text: "Cancel",
+        style: "cancel",
+      },
+      {
+        text: "Delete",
+        style: "destructive",
+        onPress: async () => {
+
+          const { error } = await supabase
+            .from("downtime_reasons")
+            .delete()
+            .eq("id", id);
+
+          if (error) {
+            Alert.alert("Error", error.message);
+            return;
+          }
+
+          loadReasons();
         },
-        {
-          text: "Delete",
-          style: "destructive",
-          onPress: () => {
-            setReasons(
-              reasons.filter(
-                (item) => item.id !== id
-              )
-            );
-          },
-        },
-      ]
-    );
-  };
+      },
+    ]
+  );
+};
 
   return (
     <ScreenContainer>
@@ -87,9 +104,8 @@ export default function DowntimeReasonsScreen() {
 
       <FlatList
         data={reasons}
-        keyExtractor={(item) =>
-          item.id.toString()
-        }
+        keyExtractor={(item) => String(item.id)}
+        
         style={styles.list}
         renderItem={({ item }) => (
           <View style={styles.card}>
@@ -97,9 +113,8 @@ export default function DowntimeReasonsScreen() {
             <View style={styles.reasonInfo}>
 
               <Text style={styles.code}>
-                {item.code}
-              </Text>
-
+  {item.reason_code}
+</Text>
               <Text style={styles.description}>
                 {item.description}
               </Text>

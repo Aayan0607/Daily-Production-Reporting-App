@@ -1,4 +1,6 @@
 import { useState } from "react";
+import { useEffect } from "react";
+import { supabase } from "../services/supabase";
 import {
   View,
   Text,
@@ -8,8 +10,6 @@ import {
   TouchableOpacity,
 } from "react-native";
 
-import { Picker } from "@react-native-picker/picker";
-
 import ScreenContainer from "../components/ScreenContainer";
 import PrimaryButton from "../components/PrimaryButton";
 import { Colors } from "../constants/colors";
@@ -18,43 +18,63 @@ export default function JobsScreen() {
 
   const [jobName, setJobName] = useState("");
   const [expectedQty, setExpectedQty] = useState("");
-  const [ups, setUps] = useState("UPS-A");
 
-  const [jobs, setJobs] = useState([
-    {
-      id: "1",
-      name: "4 LTR BR",
-      expectedQty: "1200",
-      ups: "UPS-A",
-    },
-    {
-      id: "2",
-      name: "2 LTR BR",
-      expectedQty: "900",
-      ups: "UPS-B",
-    },
-  ]);
+  const [jobs, setJobs] = useState<any[]>([]);
 
-  function addJob() {
-    if (!jobName.trim()) return;
+  useEffect(() => {
+    loadJobs();
+  }, []);
 
-    setJobs([
-      ...jobs,
-      {
-        id: Date.now().toString(),
-        name: jobName,
-        expectedQty,
-        ups,
-      },
-    ]);
+  async function loadJobs() {
+    const { data, error } = await supabase
+      .from("jobs")
+      .select("*")
+      .order("job_name");
+
+    if (!error && data) {
+      setJobs(data);
+    }
+  }
+
+  async function addJob() {
+
+    if (!jobName.trim() || !expectedQty.trim()) {
+      return;
+    }
+
+    const { error } = await supabase
+      .from("jobs")
+      .insert([
+        {
+          job_name: jobName.trim(),
+          expected_quantity: Number(expectedQty),
+        },
+      ]);
+
+    if (error) {
+      alert(error.message);
+      return;
+    }
 
     setJobName("");
     setExpectedQty("");
-    setUps("UPS-A");
+
+    loadJobs();
   }
 
-  function deleteJob(id: string) {
-    setJobs(jobs.filter((item) => item.id !== id));
+  async function deleteJob(id: string) {
+
+    const { error } = await supabase
+      .from("jobs")
+      .delete()
+      .eq("id", id);
+
+    if (error) {
+      alert(error.message);
+      return;
+    }
+
+    loadJobs();
   }
 
   return (
@@ -79,16 +99,7 @@ export default function JobsScreen() {
         onChangeText={setExpectedQty}
       />
 
-      <View style={styles.picker}>
-        <Picker
-          selectedValue={ups}
-          onValueChange={(value) => setUps(value)}
-        >
-          <Picker.Item label="UPS-A" value="UPS-A" />
-          <Picker.Item label="UPS-B" value="UPS-B" />
-          <Picker.Item label="UPS-C" value="UPS-C" />
-        </Picker>
-      </View>
+
 
       <PrimaryButton
         title="Add Job"
@@ -103,15 +114,11 @@ export default function JobsScreen() {
           <View style={styles.card}>
             <View>
               <Text style={styles.job}>
-                {item.name}
+                {item.job_name}
               </Text>
 
               <Text>
-                Expected: {item.expectedQty}
-              </Text>
-
-              <Text>
-                UPS: {item.ups}
+                Expected Quantity: {item.expected_quantity}
               </Text>
             </View>
 
@@ -147,14 +154,6 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.surface,
   },
 
-  picker: {
-    borderWidth: 1,
-    borderColor: Colors.border,
-    borderRadius: 8,
-    marginBottom: 15,
-    overflow: "hidden",
-    backgroundColor: Colors.surface,
-  },
 
   card: {
     backgroundColor: Colors.surface,

@@ -1,3 +1,4 @@
+import { useEffect, useState } from "react";
 import {
   View,
   Text,
@@ -7,47 +8,38 @@ import {
 
 import ScreenContainer from "../components/ScreenContainer";
 import { Colors } from "../constants/colors";
-
-const reports = [
-  {
-    id: "1",
-    date: "29 Jun 2026",
-    operator: "Rahul Sharma",
-    machine: "MC-101",
-    job: "4 LTR BR",
-    expected: 1200,
-    actual: 1165,
-    waste: 35,
-    downtime: "18 min",
-    status: "Completed",
-  },
-  {
-    id: "2",
-    date: "29 Jun 2026",
-    operator: "Amit Patil",
-    machine: "MC-102",
-    job: "2 LTR BR",
-    expected: 900,
-    actual: 870,
-    waste: 30,
-    downtime: "25 min",
-    status: "Completed",
-  },
-  {
-    id: "3",
-    date: "29 Jun 2026",
-    operator: "Vikram Singh",
-    machine: "MC-103",
-    job: "1 LTR BR",
-    expected: 1500,
-    actual: 1490,
-    waste: 10,
-    downtime: "8 min",
-    status: "Completed",
-  },
-];
+import { supabase } from "../services/supabase";
 
 export default function ReportsScreen() {
+
+    const [reports, setReports] = useState<any[]>([]);
+const [loading, setLoading] = useState(true);
+
+useEffect(() => {
+  loadReports();
+}, []);
+
+async function loadReports() {
+  setLoading(true);
+
+  const { data, error } = await supabase
+  .from("production_runs")
+  .select(`
+    *,
+    machines(machine_code),
+    operators(operator_name),
+    jobs(job_name)
+  `)
+  .order("production_start", { ascending: false });
+
+  if (error) {
+    console.log(error);
+  } else {
+    setReports(data || []);
+  }
+
+  setLoading(false);
+}
 
   return (
     <ScreenContainer>
@@ -56,43 +48,50 @@ export default function ReportsScreen() {
         Production Reports
       </Text>
 
+      {loading && (
+  <Text style={{ marginBottom: 15 }}>
+    Loading Reports...
+  </Text>
+)}
+
       <FlatList
-        data={reports}
-        keyExtractor={(item) => item.id}
-        renderItem={({ item }) => (
+  data={reports}
+  keyExtractor={(item) => item.id.toString()}
+  ListEmptyComponent={
+    <Text style={{ textAlign: "center", marginTop: 30 }}>
+      No production reports found.
+    </Text>
+  }
+  renderItem={({ item }) => (
+            
 
           <View style={styles.card}>
+            
 
             <View style={styles.row}>
+                
               <Text style={styles.machine}>
-                {item.machine}
+                {item.machines?.machine_code}
               </Text>
 
-              <Text style={styles.status}>
-                {item.status}
-              </Text>
             </View>
 
             <Text style={styles.info}>
-              Date: {item.date}
+              Operator: {item.operators?.operator_name}
             </Text>
 
             <Text style={styles.info}>
-              Operator: {item.operator}
-            </Text>
-
-            <Text style={styles.info}>
-              Job: {item.job}
+              Job: {item.jobs?.job_name}
             </Text>
 
             <View style={styles.divider} />
 
             <Text style={styles.info}>
-              Expected Quantity : {item.expected}
+              Expected Quantity : {item.expected_quantity}
             </Text>
 
             <Text style={styles.info}>
-              Actual Quantity : {item.actual}
+              Actual Quantity : {item.produced_quantity}
             </Text>
 
             <Text style={styles.info}>
@@ -100,7 +99,7 @@ export default function ReportsScreen() {
             </Text>
 
             <Text style={styles.info}>
-              Total Downtime : {item.downtime}
+              Total Downtime : {item.downtime_count} min
             </Text>
 
           </View>

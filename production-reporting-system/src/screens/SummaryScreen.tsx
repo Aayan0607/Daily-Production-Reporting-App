@@ -1,4 +1,5 @@
 import { useMemo, useState } from "react";
+import { supabase } from "../services/supabase";
 import {
   View,
   Text,
@@ -47,7 +48,7 @@ export default function SummaryScreen() {
     return counts;
   }, [session.downtimeHistory]);
 
-  const handleStartNewProduction = () => {
+  const handleStartNewProduction = async () => {
     if (!actualQuantity) {
       Alert.alert(
         "Missing Quantity",
@@ -61,10 +62,78 @@ export default function SummaryScreen() {
       waste,
     });
 
+    // Get machine id
+    const { data: machine } = await supabase
+      .from("machines")
+      .select("id")
+      .eq("machine_code", session.machineCode)
+      .single();
+
+    if (!machine) {
+      Alert.alert("Error", "Machine not found.");
+      return;
+    }
+
+    const { data: run } = await supabase
+      .from("production_runs")
+      .select("*")
+      .eq("machine_id", machine.id)
+      .order("id", { ascending: false })
+      .limit(1)
+      .single();
+
+    if (!run) {
+      Alert.alert("Error", "Production run not found.");
+      return;
+    }
+
+    await supabase
+      .from("production_runs")
+      .update({
+        production_end: new Date(),
+        produced_quantity: Number(actualQuantity),
+        waste: waste,
+        downtime_count: session.downtimeHistory.length,
+      })
+      .eq("id", run.id);
+
+    for (const item of session.downtimeHistory) {
+
+      const { data: reason } = await supabase
+        .from("downtime_reasons")
+        .select("id")
+        .eq("description", item.reason)
+        .single();
+
+      if (!reason) continue;
+
+      await supabase
+        .from("downtime_events")
+        .insert({
+          production_run_id: run.id,
+          reason_id: reason.id,
+          downtime_start: item.startTime,
+          downtime_end: item.endTime,
+          duration_minutes: item.durationMinutes,
+        });
+
+    }
+
+    await supabase
+      .from("machine_status")
+      .update({
+        operator_name: null,
+        current_job: null,
+        ups: null,
+        status: "Idle",
+        down_reason: null,
+      })
+      .eq("machine_id", machine.id);
+
     navigation.navigate("OperatorInfo");
   };
 
-  const handleEndShift = () => {
+  const handleEndShift = async () => {
     if (!actualQuantity) {
       Alert.alert(
         "Missing Quantity",
@@ -78,6 +147,84 @@ export default function SummaryScreen() {
       waste,
       shiftEnd: new Date(),
     });
+
+    // Get machine id
+    const { data: machine } = await supabase
+      .from("machines")
+      .select("id")
+      .eq("machine_code", session.machineCode)
+      .single();
+
+    if (!machine) {
+      Alert.alert("Error", "Machine not found.");
+      return;
+    }
+
+    const { data: run } = await supabase
+      .from("production_runs")
+      .select("*")
+      .eq("machine_id", machine.id)
+      .order("id", { ascending: false })
+      .limit(1)
+      .single();
+
+    if (!run) {
+      Alert.alert("Error", "Production run not found.");
+      return;
+    }
+
+    await supabase
+      .from("production_runs")
+      .update({
+        production_end: new Date(),
+        produced_quantity: Number(actualQuantity),
+        waste: waste,
+        downtime_count: session.downtimeHistory.length,
+      })
+      .eq("id", run.id);
+
+    for (const item of session.downtimeHistory) {
+
+      const { data: reason } = await supabase
+        .from("downtime_reasons")
+        .select("id")
+        .eq("description", item.reason)
+        .single();
+
+      if (!reason) continue;
+
+      await supabase
+        .from("downtime_events")
+        .insert({
+          production_run_id: run.id,
+          reason_id: reason.id,
+          downtime_start: item.startTime,
+          downtime_end: item.endTime,
+          duration_minutes: item.durationMinutes,
+        });
+
+    }
+
+    await supabase
+      .from("machine_status")
+      .update({
+        operator_name: null,
+        current_job: null,
+        ups: null,
+        status: "Idle",
+        down_reason: null,
+      })
+      .eq("machine_id", machine.id);
+
+    const { error: shiftError } = await supabase
+  .from("shifts")
+  .update({
+    shift_end: new Date(),
+  })
+  .eq("id", run.shift_id);
+
+console.log("Shift Update Error:", shiftError);
+console.log("Shift ID:", run.shift_id);
 
     Alert.alert(
       "Success",
@@ -176,7 +323,7 @@ export default function SummaryScreen() {
             )
           )
         )}
-                <PrimaryButton
+        <PrimaryButton
           title="Start New Production"
           onPress={handleStartNewProduction}
         />

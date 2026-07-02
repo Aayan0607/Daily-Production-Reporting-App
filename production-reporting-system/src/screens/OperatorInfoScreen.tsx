@@ -15,18 +15,28 @@ import PrimaryButton from "../components/PrimaryButton";
 import { Colors } from "../constants/colors";
 import { useProduction } from "../context/ProductionContext";
 
-import { machines } from "../data/machines";
-import { jobs } from "../data/jobs";
-import { upsOptions } from "../data/upsOptions";
+import { supabase } from "../services/supabase";
 
 export default function OperatorInfoScreen() {
   const navigation = useNavigation<any>();
 
   const { session, updateSession } = useProduction();
 
+  const [machines, setMachines] = useState<any[]>([]);
+  const [jobs, setJobs] = useState<any[]>([]);
+
   const [machineCode, setMachineCode] = useState("");
   const [jobName, setJobName] = useState("");
   const [ups, setUps] = useState("");
+
+  const upsOptions = [
+    { label: "1", value: 1 },
+    { label: "2", value: 2 },
+    { label: "3", value: 3 },
+    { label: "4", value: 4 },
+    { label: "3+3", value: 6 },
+  ];
+
 
   const [currentDate, setCurrentDate] = useState("");
   const [currentTime, setCurrentTime] = useState("");
@@ -51,6 +61,26 @@ export default function OperatorInfoScreen() {
 
     return () => clearInterval(interval);
   }, []);
+
+  useEffect(() => {
+    loadData();
+  }, []);
+
+  async function loadData() {
+
+    const { data: machinesData } = await supabase
+      .from("machines")
+      .select("*")
+      .order("machine_code");
+
+    const { data: jobsData } = await supabase
+      .from("jobs")
+      .select("*")
+      .order("job_name");
+
+    setMachines(machinesData ?? []);
+    setJobs(jobsData ?? []);
+  }
 
   const handleStartProduction = () => {
     if (!machineCode || !jobName || !ups) {
@@ -133,8 +163,9 @@ export default function OperatorInfoScreen() {
         <View style={styles.pickerContainer}>
           <Picker
             selectedValue={jobName}
-            onValueChange={(value) =>
-              setJobName(value)
+            onValueChange={(value) => {
+              setJobName(value);
+            }
             }
           >
             <Picker.Item
@@ -152,18 +183,14 @@ export default function OperatorInfoScreen() {
           </Picker>
         </View>
 
-        {/* UPS */}
-
         <Text style={styles.label}>
-          UPS
+          ups
         </Text>
 
         <View style={styles.pickerContainer}>
           <Picker
             selectedValue={ups}
-            onValueChange={(value) =>
-              setUps(value)
-            }
+            onValueChange={(value) => setUps(value)}
           >
             <Picker.Item
               label="Select UPS"
@@ -172,8 +199,8 @@ export default function OperatorInfoScreen() {
 
             {upsOptions.map((item) => (
               <Picker.Item
-                key={item.id}
-                label={item.value}
+                key={item.value}
+                label={item.label}
                 value={item.value}
               />
             ))}

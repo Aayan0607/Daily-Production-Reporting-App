@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
   View,
   Text,
@@ -6,7 +6,9 @@ import {
   StyleSheet,
   FlatList,
   TouchableOpacity,
+  Alert,
 } from "react-native";
+import { supabase } from "../services/supabase";
 
 import ScreenContainer from "../components/ScreenContainer";
 import PrimaryButton from "../components/PrimaryButton";
@@ -16,32 +18,102 @@ export default function MachinesScreen() {
 
   const [machineName, setMachineName] = useState("");
 
-  const [machines, setMachines] = useState([
-    { id: "1", code: "MC-101" },
-    { id: "2", code: "MC-102" },
-    { id: "3", code: "MC-103" },
-  ]);
+  const [machines, setMachines] = useState<any[]>([]);
 
-  function addMachine() {
+  const fetchMachines = async () => {
 
-    if (!machineName.trim()) return;
+    const { data, error } = await supabase
+      .from("machines")
+      .select("*")
+      .order("machine_code");
 
-    setMachines([
-      ...machines,
+    if (!error && data) {
+      setMachines(data);
+    }
+
+  };
+
+  useEffect(() => {
+    fetchMachines();
+  }, []);
+
+  async function addMachine() {
+
+  if (!machineName.trim()) return;
+
+  const { data, error } = await supabase
+  .from("machines")
+  .insert({
+    machine_code: machineName,
+  })
+  .select()
+  .single();
+
+if (error) {
+  console.log("Machine insert error:", error);
+  return;
+}
+
+console.log(data);
+
+const { error: statusError } = await supabase
+  .from("machine_status")
+  .insert({
+    machine_id: data.id,
+    status: "Idle",
+    operator_name: null,
+    current_job: null,
+    ups: null,
+    down_reason: null,
+  });
+
+console.log("Status insert error:", statusError);
+
+setMachineName("");
+fetchMachines();
+}
+
+  async function deleteMachine(id: number) {
+
+  Alert.alert(
+    "Delete Machine",
+    "Are you sure?",
+    [
       {
-        id: Date.now().toString(),
-        code: machineName,
+        text: "Cancel",
+        style: "cancel",
       },
-    ]);
+      {
+        text: "Delete",
+        style: "destructive",
+        onPress: async () => {
 
-    setMachineName("");
-  }
+          // Get machine code first
+          const { data } = await supabase
+            .from("machines")
+            .select("machine_code")
+            .eq("id", id)
+            .single();
 
-  function deleteMachine(id: string) {
-    setMachines(
-      machines.filter((item) => item.id !== id)
-    );
-  }
+          if (data) {
+            await supabase
+              .from("machine_status")
+              .delete()
+              .eq("machine_id", id);
+          }
+
+          await supabase
+            .from("machines")
+            .delete()
+            .eq("id", id);
+
+          fetchMachines();
+
+        },
+      },
+    ]
+  );
+}
 
   return (
     <ScreenContainer>
@@ -65,12 +137,12 @@ export default function MachinesScreen() {
       <FlatList
         style={{ marginTop: 20 }}
         data={machines}
-        keyExtractor={(item) => item.id}
+        keyExtractor={(item) => item.id.toString()}
         renderItem={({ item }) => (
           <View style={styles.card}>
 
             <Text style={styles.machine}>
-              {item.code}
+              {item.machine_code}
             </Text>
 
             <TouchableOpacity

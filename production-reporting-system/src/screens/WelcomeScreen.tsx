@@ -35,18 +35,29 @@ export default function WelcomeScreen() {
   }
 
   const { data, error } = await supabase
-    .from("operators")
-    .select("id, operator_name")
-    .ilike("operator_name", operatorName.trim())
-    .single();
+  .from("operators")
+  .select("id, operator_name")
+  .ilike("operator_name", operatorName.trim())
+  .limit(1)
+  .maybeSingle();
 
-  if (error || !data) {
-    Alert.alert(
-      "Operator Not Found",
-      "This operator has not been added by the admin."
-    );
-    return;
-  }
+  if (error) {
+  console.log(error);
+
+  Alert.alert(
+    "Database Error",
+    "Unable to connect to the database."
+  );
+  return;
+}
+
+if (!data) {
+  Alert.alert(
+    "Operator Not Found",
+    "This operator has not been added by the admin."
+  );
+  return;
+}
 
   updateSession({
     sessionId: Date.now().toString(),
