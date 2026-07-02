@@ -1,112 +1,38 @@
-import { useState } from "react";
+import React from "react";
 import {
   View,
   Text,
-  TextInput,
-  StyleSheet,
   FlatList,
   TouchableOpacity,
+  StyleSheet,
 } from "react-native";
 
 import ScreenContainer from "../components/ScreenContainer";
-import PrimaryButton from "../components/PrimaryButton";
 import { Colors } from "../constants/colors";
+import { operators } from "../data/operators";
 
-export default function OperatorsScreen() {
-
-  const [operatorName, setOperatorName] = useState("");
-  const [operatorId, setOperatorId] = useState("");
-
-  const [operators, setOperators] = useState([
-    {
-      id: "1",
-      operatorId: "OP-001",
-      name: "Rahul Sharma",
-    },
-    {
-      id: "2",
-      operatorId: "OP-002",
-      name: "Amit Patil",
-    },
-    {
-      id: "3",
-      operatorId: "OP-003",
-      name: "Vikram Singh",
-    },
-  ]);
-
-  function addOperator() {
-
-    if (!operatorName.trim() || !operatorId.trim())
-      return;
-
-    setOperators([
-      ...operators,
-      {
-        id: Date.now().toString(),
-        operatorId,
-        name: operatorName,
-      },
-    ]);
-
-    setOperatorName("");
-    setOperatorId("");
-  }
-
-  function deleteOperator(id: string) {
-    setOperators(
-      operators.filter((item) => item.id !== id)
-    );
-  }
-
+export default function OperatorManagementScreen() {
   return (
     <ScreenContainer>
 
-      <Text style={styles.heading}>
+      <Text style={styles.title}>
         Manage Operators
       </Text>
 
-      <TextInput
-        style={styles.input}
-        placeholder="Operator ID"
-        value={operatorId}
-        onChangeText={setOperatorId}
-      />
-
-      <TextInput
-        style={styles.input}
-        placeholder="Operator Name"
-        value={operatorName}
-        onChangeText={setOperatorName}
-      />
-
-      <PrimaryButton
-        title="Add Operator"
-        onPress={addOperator}
-      />
-
       <FlatList
-        style={{ marginTop: 20 }}
         data={operators}
-        keyExtractor={(item) => item.id}
+        keyExtractor={(item) => item.id.toString()}
+        contentContainerStyle={{ paddingBottom: 20 }}
         renderItem={({ item }) => (
 
           <View style={styles.card}>
 
-            <View>
-              <Text style={styles.name}>
-                {item.name}
-              </Text>
+            <Text style={styles.name}>
+              {item.operator_name}
+            </Text>
 
-              <Text style={styles.id}>
-                {item.operatorId}
-              </Text>
-            </View>
-
-            <TouchableOpacity
-              onPress={() => deleteOperator(item.id)}
-            >
-              <Text style={styles.delete}>
+            <TouchableOpacity style={styles.deleteButton}>
+              <Text style={styles.deleteText}>
                 Delete
               </Text>
             </TouchableOpacity>
@@ -116,38 +42,35 @@ export default function OperatorsScreen() {
         )}
       />
 
+      <TouchableOpacity style={styles.addButton}>
+        <Text style={styles.addText}>
+          + Add Operator
+        </Text>
+      </TouchableOpacity>
+
     </ScreenContainer>
   );
 }
 
 const styles = StyleSheet.create({
 
-  heading: {
-    fontSize: 26,
+  title: {
+    fontSize: 28,
     fontWeight: "bold",
+    textAlign: "center",
     marginBottom: 20,
-    color: Colors.text,
-  },
-
-  input: {
-    borderWidth: 1,
-    borderColor: Colors.border,
-    borderRadius: 8,
-    padding: 12,
-    marginBottom: 15,
-    backgroundColor: Colors.surface,
-    color: Colors.text,
+    color: "#1565C0",
   },
 
   card: {
     backgroundColor: Colors.surface,
-    padding: 15,
-    borderRadius: 10,
-    marginBottom: 12,
-
+    borderRadius: 12,
+    padding: 16,
+    marginBottom: 14,
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
+    elevation: 3,
   },
 
   name: {
@@ -156,14 +79,30 @@ const styles = StyleSheet.create({
     color: Colors.text,
   },
 
-  id: {
-    marginTop: 4,
-    color: "#666",
+  deleteButton: {
+    backgroundColor: "#E74C3C",
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    borderRadius: 8,
   },
 
-  delete: {
-    color: "red",
+  deleteText: {
+    color: "#fff",
+    fontWeight: "600",
+  },
+
+  addButton: {
+    backgroundColor: "#1565C0",
+    padding: 16,
+    borderRadius: 10,
+    alignItems: "center",
+    marginTop: 10,
+  },
+
+  addText: {
+    color: "#fff",
     fontWeight: "bold",
+    fontSize: 17,
   },
 
 });

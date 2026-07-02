@@ -1,129 +1,169 @@
+import React from "react";
 import {
   View,
   Text,
-  StyleSheet,
   FlatList,
+  StyleSheet,
 } from "react-native";
 
 import ScreenContainer from "../components/ScreenContainer";
 import { Colors } from "../constants/colors";
+import { machineData } from "../data/dummyData";
 
-const machines = [
-  { id: "1", code: "MC-101", status: "Running", updated: "09:12 AM" },
-  { id: "2", code: "MC-102", status: "Down", updated: "09:18 AM" },
-  { id: "3", code: "MC-103", status: "Idle", updated: "08:55 AM" },
-  { id: "4", code: "MC-104", status: "Running", updated: "09:20 AM" },
-  { id: "5", code: "MC-105", status: "Maintenance", updated: "08:40 AM" },
-  { id: "6", code: "MC-106", status: "Running", updated: "09:21 AM" },
-  { id: "7", code: "MC-107", status: "Down", updated: "09:03 AM" },
-  { id: "8", code: "MC-108", status: "Idle", updated: "09:15 AM" },
-  { id: "9", code: "MC-109", status: "Running", updated: "09:22 AM" },
-  { id: "10", code: "MC-110", status: "Running", updated: "09:19 AM" },
-];
-
-function getStatusColor(status: string) {
+const getStatusColor = (status: string) => {
   switch (status) {
     case "Running":
-      return "#22C55E"; // Green
+      return "#2ECC71";
 
     case "Down":
-      return "#EF4444"; // Red
+      return "#E74C3C";
 
     case "Idle":
-      return "#F59E0B"; // Orange
-
-    case "Maintenance":
-      return "#3B82F6"; // Blue
+      return "#F39C12";
 
     default:
-      return "#9CA3AF";
+      return "#7F8C8D";
   }
-}
+};
 
 export default function MachineStatusScreen() {
   return (
     <ScreenContainer>
-      <Text style={styles.heading}>
+
+      <Text style={styles.title}>
         Live Machine Status
       </Text>
 
       <FlatList
-        data={machines}
-        keyExtractor={(item) => item.id}
+        data={machineData}
+        keyExtractor={(item) => item.id.toString()}
+        showsVerticalScrollIndicator={false}
+        contentContainerStyle={{ paddingBottom: 20 }}
         renderItem={({ item }) => (
+
           <View style={styles.card}>
 
-            <View>
-              <Text style={styles.machine}>
-                {item.code}
-              </Text>
+            <Text style={styles.machineCode}>
+              {item.machineCode}
+            </Text>
 
-              <Text style={styles.time}>
-                Updated: {item.updated}
-              </Text>
-            </View>
+            <Text style={styles.operator}>
+              👤 {item.operatorName ?? "No Operator Assigned"}
+            </Text>
+
+            <Text style={styles.label}>
+              Current Job
+            </Text>
+
+            <Text style={styles.value}>
+              {item.currentJob ?? "-"}
+            </Text>
+
+            <Text style={styles.label}>
+              UPS
+            </Text>
+
+            <Text style={styles.value}>
+              {item.ups ?? "-"}
+            </Text>
 
             <View
               style={[
-                styles.badge,
+                styles.statusBadge,
                 {
                   backgroundColor: getStatusColor(item.status),
                 },
               ]}
             >
-              <Text style={styles.badgeText}>
+              <Text style={styles.statusText}>
                 {item.status}
               </Text>
             </View>
 
+            {item.status === "Down" && (
+              <>
+                <Text style={styles.label}>
+                  Downtime Reason
+                </Text>
+
+                <Text style={styles.reason}>
+                  {item.downReason}
+                </Text>
+              </>
+            )}
+
           </View>
+
         )}
       />
+
     </ScreenContainer>
   );
 }
 
 const styles = StyleSheet.create({
 
-  heading: {
+  title: {
     fontSize: 28,
     fontWeight: "bold",
+    color: "#1565C0",
+    textAlign: "center",
     marginBottom: 20,
-    color: Colors.text,
   },
 
   card: {
     backgroundColor: Colors.surface,
-    padding: 16,
     borderRadius: 12,
-    marginBottom: 12,
-
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
+    padding: 18,
+    marginBottom: 16,
+    elevation: 4,
   },
 
-  machine: {
+  machineCode: {
+    fontSize: 22,
+    fontWeight: "bold",
+    color: "#1565C0",
+    marginBottom: 10,
+  },
+
+  operator: {
     fontSize: 18,
-    fontWeight: "700",
+    fontWeight: "600",
+    marginBottom: 14,
     color: Colors.text,
   },
 
-  time: {
-    marginTop: 5,
+  label: {
+    fontSize: 13,
     color: "#777",
-    fontSize: 14,
+    marginTop: 8,
   },
 
-  badge: {
-    paddingVertical: 6,
-    paddingHorizontal: 14,
-    borderRadius: 20,
+  value: {
+    fontSize: 16,
+    fontWeight: "600",
+    color: Colors.text,
   },
 
-  badgeText: {
-    color: "white",
+  statusBadge: {
+    marginTop: 18,
+    alignSelf: "flex-start",
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 25,
+  },
+
+  statusText: {
+    color: "#FFFFFF",
     fontWeight: "bold",
+    fontSize: 15,
+  },
+
+  reason: {
+    color: "#E74C3C",
+    fontWeight: "600",
+    marginTop: 6,
+    fontSize: 15,
   },
 
 });

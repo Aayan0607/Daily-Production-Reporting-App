@@ -23,7 +23,7 @@ export interface ProductionSession {
   expectedQuantity: number;
   actualQuantity: number;
   waste: number;
-  ups: number;
+  ups: string;
   remarks: string;
 
   downtimeHistory: DowntimeEvent[];
@@ -52,7 +52,7 @@ const initialSession: ProductionSession = {
   expectedQuantity: 0,
   actualQuantity: 0,
   waste: 0,
-  ups: 0,
+  ups: "",
   remarks: "",
 
   downtimeHistory: [],

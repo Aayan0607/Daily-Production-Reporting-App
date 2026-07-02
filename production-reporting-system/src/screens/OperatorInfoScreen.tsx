@@ -1,48 +1,67 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
   View,
   Text,
   StyleSheet,
+  ScrollView,
 } from "react-native";
 
 import { Picker } from "@react-native-picker/picker";
+import { useNavigation } from "@react-navigation/native";
 
 import ScreenContainer from "../components/ScreenContainer";
-import { useNavigation } from "@react-navigation/native";
 import PrimaryButton from "../components/PrimaryButton";
+
 import { Colors } from "../constants/colors";
 import { useProduction } from "../context/ProductionContext";
 
+import { machines } from "../data/machines";
+import { jobs } from "../data/jobs";
+import { upsOptions } from "../data/upsOptions";
+
 export default function OperatorInfoScreen() {
+  const navigation = useNavigation<any>();
 
   const { session, updateSession } = useProduction();
 
   const [machineCode, setMachineCode] = useState("");
   const [jobName, setJobName] = useState("");
-  const navigation = useNavigation<any>();
+  const [ups, setUps] = useState("");
 
-  const machineCodes = [
-    "MC-101",
-    "MC-102",
-    "MC-103",
-  ];
+  const [currentDate, setCurrentDate] = useState("");
+  const [currentTime, setCurrentTime] = useState("");
 
-  const jobNames = [
-    "4 LTR BR",
-    "2 LTR BR",
-    "1 LTR BR",
-    "Other",
-  ];
+  useEffect(() => {
+    const updateClock = () => {
+      const now = new Date();
 
-  const handleStart = () => {
-    if (!machineCode || !jobName) {
-      alert("Please select Machine and Job.");
+      setCurrentDate(now.toLocaleDateString());
+
+      setCurrentTime(
+        now.toLocaleTimeString([], {
+          hour: "2-digit",
+          minute: "2-digit",
+        })
+      );
+    };
+
+    updateClock();
+
+    const interval = setInterval(updateClock, 1000);
+
+    return () => clearInterval(interval);
+  }, []);
+
+  const handleStartProduction = () => {
+    if (!machineCode || !jobName || !ups) {
+      alert("Please complete all fields.");
       return;
     }
 
     updateSession({
       machineCode,
       jobName,
+      ups,
     });
 
     navigation.navigate("Production");
@@ -50,22 +69,34 @@ export default function OperatorInfoScreen() {
 
   return (
     <ScreenContainer>
+      <ScrollView
+        contentContainerStyle={styles.container}
+        showsVerticalScrollIndicator={false}
+      >
 
-      <View style={styles.container}>
+        {/* Header */}
 
-        <Text style={styles.heading}>
-          Operator Details
-        </Text>
+        <View style={styles.header}>
 
-        <View style={styles.card}>
-          <Text style={styles.operatorName}>
-            {session.operatorName}
+          <Text style={styles.headerTitle}>
+            Work Information
           </Text>
 
-          <Text style={styles.operatorId}>
-            ID : {session.operatorId}
+          <Text style={styles.headerText}>
+            Operator : {session.operatorName}
           </Text>
+
+          <Text style={styles.headerText}>
+            Date : {currentDate}
+          </Text>
+
+          <Text style={styles.headerText}>
+            Time : {currentTime}
+          </Text>
+
         </View>
+
+        {/* Machine */}
 
         <Text style={styles.label}>
           Machine Code
@@ -83,15 +114,17 @@ export default function OperatorInfoScreen() {
               value=""
             />
 
-            {machineCodes.map((machine) => (
+            {machines.map((machine) => (
               <Picker.Item
-                key={machine}
-                label={machine}
-                value={machine}
+                key={machine.id}
+                label={machine.machine_code}
+                value={machine.machine_code}
               />
             ))}
           </Picker>
         </View>
+
+        {/* Job */}
 
         <Text style={styles.label}>
           Job Name
@@ -109,11 +142,39 @@ export default function OperatorInfoScreen() {
               value=""
             />
 
-            {jobNames.map((job) => (
+            {jobs.map((job) => (
               <Picker.Item
-                key={job}
-                label={job}
-                value={job}
+                key={job.id}
+                label={job.job_name}
+                value={job.job_name}
+              />
+            ))}
+          </Picker>
+        </View>
+
+        {/* UPS */}
+
+        <Text style={styles.label}>
+          UPS
+        </Text>
+
+        <View style={styles.pickerContainer}>
+          <Picker
+            selectedValue={ups}
+            onValueChange={(value) =>
+              setUps(value)
+            }
+          >
+            <Picker.Item
+              label="Select UPS"
+              value=""
+            />
+
+            {upsOptions.map((item) => (
+              <Picker.Item
+                key={item.id}
+                label={item.value}
+                value={item.value}
               />
             ))}
           </Picker>
@@ -121,62 +182,54 @@ export default function OperatorInfoScreen() {
 
         <PrimaryButton
           title="Start Production"
-          onPress={handleStart}
+          onPress={handleStartProduction}
         />
-
-      </View>
-
+      </ScrollView>
     </ScreenContainer>
   );
 }
 
 const styles = StyleSheet.create({
-
   container: {
-    flex: 1,
+    flexGrow: 1,
+    padding: 20,
+    backgroundColor: "#EEF3F9",
   },
 
-  heading: {
-    fontSize: 26,
+  header: {
+    backgroundColor: "#173D8F",
+    borderRadius: 18,
+    padding: 22,
+    marginBottom: 25,
+  },
+
+  headerTitle: {
+    fontSize: 24,
     fontWeight: "bold",
-    marginBottom: 20,
-    color: Colors.text,
+    color: "#FFFFFF",
+    marginBottom: 14,
   },
 
-  card: {
-    padding: 15,
-    borderRadius: 10,
-    backgroundColor: Colors.surface,
-    marginBottom: 30,
-  },
-
-  operatorName: {
-    fontSize: 20,
-    fontWeight: "600",
-    color: Colors.text,
-  },
-
-  operatorId: {
-    marginTop: 5,
-    color: Colors.secondaryText,
+  headerText: {
     fontSize: 16,
+    color: "#FFFFFF",
+    marginTop: 4,
   },
 
   label: {
+    fontSize: 16,
+    fontWeight: "bold",
+    color: "#173D8F",
     marginBottom: 8,
     marginTop: 10,
-    fontSize: 16,
-    fontWeight: "600",
-    color: Colors.text,
   },
 
   pickerContainer: {
+    backgroundColor: "#FFFFFF",
     borderWidth: 1,
-    borderColor: Colors.border,
-    borderRadius: 8,
-    marginBottom: 15,
+    borderColor: "#D1D5DB",
+    borderRadius: 10,
     overflow: "hidden",
-    backgroundColor: Colors.surface,
+    marginBottom: 18,
   },
-
 });
