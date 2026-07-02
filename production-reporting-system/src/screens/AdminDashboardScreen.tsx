@@ -27,6 +27,13 @@ export default function AdminDashboardScreen() {
         />
 
         <PrimaryButton
+          title="Downtime Reasons"
+          onPress={() =>
+            navigation.navigate("DowntimeReasons")
+          }
+        />
+
+        <PrimaryButton
           title="View Reports"
           onPress={() => navigation.navigate("Reports")}
         />

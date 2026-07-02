@@ -1,13 +1,15 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { supabase } from "../services/supabase";
 import { useNavigation } from "@react-navigation/native";
 import { useProduction } from "../context/ProductionContext";
+
 import {
   View,
   Text,
   TextInput,
   TouchableOpacity,
   StyleSheet,
+  Alert,
 } from "react-native";
 
 import ScreenContainer from "../components/ScreenContainer";
@@ -15,47 +17,54 @@ import PrimaryButton from "../components/PrimaryButton";
 import { Colors } from "../constants/colors";
 
 export default function WelcomeScreen() {
-  const [operatorId, setOperatorId] = useState("");
-  const [operatorName, setOperatorName] = useState("");
+
   const navigation = useNavigation<any>();
-  const { session, updateSession } = useProduction();
 
-  const handleContinue = () => {
+  const { updateSession } = useProduction();
 
-    if (!operatorId || !operatorName) {
-      alert("Please fill all fields.");
-      return;
-    }
+  const [operatorName, setOperatorName] = useState("");
 
-    updateSession({
-      sessionId: Date.now().toString(),
-      operatorId,
-      operatorName,
-    });
+  const handleContinue = async () => {
 
-    navigation.navigate("OperatorInfo");
-  };
+  if (!operatorName.trim()) {
+    Alert.alert(
+      "Missing Operator",
+      "Please enter your name."
+    );
+    return;
+  }
+
+  const { data, error } = await supabase
+    .from("operators")
+    .select("id, operator_name")
+    .ilike("operator_name", operatorName.trim())
+    .single();
+
+  if (error || !data) {
+    Alert.alert(
+      "Operator Not Found",
+      "This operator has not been added by the admin."
+    );
+    return;
+  }
+
+  updateSession({
+    sessionId: Date.now().toString(),
+    operatorId: data.id.toString(),
+    operatorName: data.operator_name,
+  });
+
+  navigation.navigate("OperatorInfo");
+};
 
   const handleAdminPortal = () => {
-    console.log("Admin");
-    navigation.navigate("AdminLogin")
+    navigation.navigate("AdminLogin");
   };
-
-  useEffect(() => {
-    async function testConnection() {
-      const { data, error } = await supabase
-        .from("test")
-        .select("*");
-
-      console.log(data);
-      console.log(error);
-    }
-
-    testConnection();
-  }, []);
   return (
     <ScreenContainer>
+
       <View style={styles.container}>
+
         <Text style={styles.title}>
           Daily Production
         </Text>
@@ -64,22 +73,19 @@ export default function WelcomeScreen() {
           Reporting System
         </Text>
 
-        <TextInput
-          placeholder="Operator ID"
-          value={operatorId}
-          onChangeText={setOperatorId}
-          style={styles.input}
-        />
+        <Text style={styles.label}>
+          Operator Name
+        </Text>
 
         <TextInput
-          placeholder="Operator Name"
+          placeholder="Enter your name"
           value={operatorName}
           onChangeText={setOperatorName}
           style={styles.input}
         />
 
         <PrimaryButton
-          title="Continue"
+          title="Login"
           onPress={handleContinue}
         />
 
@@ -90,7 +96,9 @@ export default function WelcomeScreen() {
             Admin Portal
           </Text>
         </TouchableOpacity>
+
       </View>
+
     </ScreenContainer>
   );
 }
@@ -113,6 +121,13 @@ const styles = StyleSheet.create({
     textAlign: "center",
     marginBottom: 40,
     color: Colors.secondaryText,
+  },
+
+  label: {
+    fontSize: 16,
+    fontWeight: "600",
+    color: Colors.text,
+    marginBottom: 8,
   },
 
   input: {

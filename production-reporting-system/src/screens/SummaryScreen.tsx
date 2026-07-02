@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import {
   View,
   Text,
@@ -8,103 +8,182 @@ import {
   Alert,
 } from "react-native";
 
+import { useNavigation } from "@react-navigation/native";
+
 import ScreenContainer from "../components/ScreenContainer";
 import PrimaryButton from "../components/PrimaryButton";
 import { Colors } from "../constants/colors";
 import { useProduction } from "../context/ProductionContext";
 
 export default function SummaryScreen() {
-  const { session } = useProduction();
+  const navigation = useNavigation<any>();
 
-  const [expectedQuantity, setExpectedQuantity] = useState("");
-  const [actualQuantity, setActualQuantity] = useState("");
-  const [waste, setWaste] = useState("");
-  const [ups, setUps] = useState("");
-  const [remarks, setRemarks] = useState("");
+  const { session, updateSession } = useProduction();
 
-  const handleSubmit = async () => {
+  // This will later come from the Jobs table in Supabase
+  const expectedQuantity =
+    session.expectedQuantity ?? 25000;
+
+  const [actualQuantity, setActualQuantity] =
+    useState("");
+
+  const waste = useMemo(() => {
+    const actual = Number(actualQuantity);
+
+    if (isNaN(actual)) return 0;
+
+    return Math.max(expectedQuantity - actual, 0);
+  }, [actualQuantity, expectedQuantity]);
+
+  // Count number of downtimes for each reason
+  const downtimeSummary = useMemo(() => {
+    const counts: Record<string, number> = {};
+
+    session.downtimeHistory.forEach((item) => {
+      counts[item.reason] =
+        (counts[item.reason] || 0) + 1;
+    });
+
+    return counts;
+  }, [session.downtimeHistory]);
+
+  const handleStartNewProduction = () => {
+    if (!actualQuantity) {
+      Alert.alert(
+        "Missing Quantity",
+        "Please enter the actual quantity."
+      );
+      return;
+    }
+
+    updateSession({
+      actualQuantity: Number(actualQuantity),
+      waste,
+    });
+
+    navigation.navigate("OperatorInfo");
+  };
+
+  const handleEndShift = () => {
+    if (!actualQuantity) {
+      Alert.alert(
+        "Missing Quantity",
+        "Please enter the actual quantity."
+      );
+      return;
+    }
+
+    updateSession({
+      actualQuantity: Number(actualQuantity),
+      waste,
+      shiftEnd: new Date(),
+    });
+
     Alert.alert(
       "Success",
-      "Production report ready to save."
+      "Production report is ready to save."
     );
 
     console.log(session);
+
+    navigation.navigate("Login");
   };
 
   return (
     <ScreenContainer>
-      <ScrollView>
-
+      <ScrollView
+        showsVerticalScrollIndicator={false}
+      >
         <Text style={styles.heading}>
-          Shift Summary
+          Production Summary
         </Text>
+
+        <View style={styles.card}>
+          <Text style={styles.info}>
+            Operator : {session.operatorName}
+          </Text>
+
+          <Text style={styles.info}>
+            Machine : {session.machineCode}
+          </Text>
+
+          <Text style={styles.info}>
+            Job : {session.jobName}
+          </Text>
+
+          <Text style={styles.info}>
+            UPS : {session.ups}
+          </Text>
+        </View>
 
         <Text style={styles.section}>
-          Downtime History
+          Production
         </Text>
 
-        {session.downtimeHistory.length === 0 ? (
-          <Text>No Downtime Recorded</Text>
+        <View style={styles.card}>
+          <Text style={styles.label}>
+            Expected Quantity
+          </Text>
+
+          <Text style={styles.value}>
+            {expectedQuantity}
+          </Text>
+
+          <Text style={styles.label}>
+            Actual Quantity
+          </Text>
+
+          <TextInput
+            style={styles.input}
+            keyboardType="numeric"
+            placeholder="Enter Actual Quantity"
+            value={actualQuantity}
+            onChangeText={setActualQuantity}
+          />
+
+          <Text style={styles.label}>
+            Waste
+          </Text>
+
+          <Text style={styles.waste}>
+            {waste}
+          </Text>
+        </View>
+
+        <Text style={styles.section}>
+          Downtime Summary
+        </Text>
+
+        {Object.keys(downtimeSummary).length === 0 ? (
+          <View style={styles.card}>
+            <Text>No Downtime Recorded</Text>
+          </View>
         ) : (
-          session.downtimeHistory.map((item) => (
-            <View
-              key={item.id}
-              style={styles.card}
-            >
-              <Text>
-                Reason : {item.reason}
-              </Text>
+          Object.entries(downtimeSummary).map(
+            ([reason, count]) => (
+              <View
+                key={reason}
+                style={styles.card}
+              >
+                <Text style={styles.reason}>
+                  {reason}
+                </Text>
 
-              <Text>
-                Duration : {item.durationMinutes} min
-              </Text>
-            </View>
-          ))
+                <Text style={styles.count}>
+                  {count} Time(s)
+                </Text>
+              </View>
+            )
+          )
         )}
-
-        <TextInput
-          placeholder="Expected Quantity"
-          keyboardType="numeric"
-          value={expectedQuantity}
-          onChangeText={setExpectedQuantity}
-          style={styles.input}
-        />
-
-        <TextInput
-          placeholder="Actual Quantity"
-          keyboardType="numeric"
-          value={actualQuantity}
-          onChangeText={setActualQuantity}
-          style={styles.input}
-        />
-
-        <TextInput
-          placeholder="Waste"
-          keyboardType="numeric"
-          value={waste}
-          onChangeText={setWaste}
-          style={styles.input}
-        />
-
-        <TextInput
-          placeholder="UPS"
-          keyboardType="numeric"
-          value={ups}
-          onChangeText={setUps}
-          style={styles.input}
-        />
-
-        <TextInput
-          placeholder="Remarks"
-          value={remarks}
-          onChangeText={setRemarks}
-          style={styles.input}
-          multiline
+                <PrimaryButton
+          title="Start New Production"
+          onPress={handleStartNewProduction}
         />
 
         <PrimaryButton
-          title="Submit Report"
-          onPress={handleSubmit}
+          title="End Shift"
+          onPress={handleEndShift}
         />
 
       </ScrollView>
@@ -121,16 +200,40 @@ const styles = StyleSheet.create({
   },
 
   section: {
-    fontSize: 18,
-    fontWeight: "600",
-    marginBottom: 10,
+    fontSize: 20,
+    fontWeight: "700",
+    color: Colors.text,
+    marginTop: 20,
+    marginBottom: 12,
   },
 
   card: {
-    padding: 12,
-    borderRadius: 8,
     backgroundColor: Colors.surface,
-    marginBottom: 10,
+    padding: 16,
+    borderRadius: 10,
+    marginBottom: 12,
+    borderWidth: 1,
+    borderColor: Colors.border,
+  },
+
+  info: {
+    fontSize: 16,
+    color: Colors.text,
+    marginBottom: 6,
+  },
+
+  label: {
+    fontSize: 15,
+    fontWeight: "600",
+    color: Colors.secondaryText,
+    marginTop: 12,
+    marginBottom: 6,
+  },
+
+  value: {
+    fontSize: 20,
+    fontWeight: "700",
+    color: Colors.text,
   },
 
   input: {
@@ -138,8 +241,27 @@ const styles = StyleSheet.create({
     borderColor: Colors.border,
     borderRadius: 8,
     padding: 12,
-    marginTop: 15,
     backgroundColor: Colors.surface,
     color: Colors.text,
+    fontSize: 16,
+  },
+
+  waste: {
+    fontSize: 24,
+    fontWeight: "bold",
+    color: "#E53935",
+    marginTop: 4,
+  },
+
+  reason: {
+    fontSize: 16,
+    fontWeight: "600",
+    color: Colors.text,
+  },
+
+  count: {
+    marginTop: 6,
+    fontSize: 15,
+    color: Colors.secondaryText,
   },
 });

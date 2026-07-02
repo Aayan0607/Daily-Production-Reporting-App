@@ -10,18 +10,41 @@ import { Spacing } from "../constants/spacing";
 type PrimaryButtonProps = {
   title: string;
   onPress: () => void;
+
+  // Optional
+  color?: string;
+  textColor?: string;
+  disabled?: boolean;
 };
 
 export default function PrimaryButton({
   title,
   onPress,
+  color = Colors.primary,
+  textColor = "white",
+  disabled = false,
 }: PrimaryButtonProps) {
   return (
     <TouchableOpacity
-      style={styles.button}
       onPress={onPress}
+      disabled={disabled}
+      style={[
+        styles.button,
+        {
+          backgroundColor: disabled
+            ? "#BDBDBD"
+            : color,
+        },
+      ]}
     >
-      <Text style={styles.text}>
+      <Text
+        style={[
+          styles.text,
+          {
+            color: textColor,
+          },
+        ]}
+      >
         {title}
       </Text>
     </TouchableOpacity>
@@ -30,7 +53,6 @@ export default function PrimaryButton({
 
 const styles = StyleSheet.create({
   button: {
-    backgroundColor: Colors.primary,
     padding: Spacing.md,
     borderRadius: 8,
     alignItems: "center",
@@ -38,7 +60,6 @@ const styles = StyleSheet.create({
   },
 
   text: {
-    color: "white",
     fontSize: 16,
     fontWeight: "600",
   },

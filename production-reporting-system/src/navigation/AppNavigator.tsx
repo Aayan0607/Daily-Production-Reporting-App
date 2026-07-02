@@ -12,6 +12,7 @@ import MachinesScreen from "../screens/MachinesScreen";
 import JobsScreen from "../screens/JobsScreen";
 import ReportsScreen from "../screens/ReportsScreen";
 import MachineStatusScreen from "../screens/MachineStatusScreen";
+import DowntimeReasonsScreen from "../screens/DowntimeReasonsScreen";
 const Stack = createNativeStackNavigator();
 
 export default function AppNavigator() {
@@ -62,6 +63,10 @@ export default function AppNavigator() {
                 <Stack.Screen
                     name="Jobs"
                     component={JobsScreen}
+                />
+                <Stack.Screen
+                    name="DowntimeReasons"
+                    component={DowntimeReasonsScreen}
                 />
                 <Stack.Screen
                     name="Reports"
