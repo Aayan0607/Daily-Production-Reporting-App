@@ -1,12 +1,12 @@
 {
   "expo": {
-    "name": "production-reporting-system",
+    "name": "Production-Reporting-System",
     "slug": "production-reporting-system",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "light",
-    "newArchEnabled": true,
+    "newArchEnabled": false,
     "splash": {
       "image": "./assets/splash-icon.png",
       "resizeMode": "contain",
@@ -21,10 +21,16 @@
         "backgroundColor": "#ffffff"
       },
       "edgeToEdgeEnabled": true,
-      "predictiveBackGestureEnabled": false
+      "predictiveBackGestureEnabled": false,
+      "package": "com.aayan4225.productionreportingsystem"
     },
     "web": {
       "favicon": "./assets/favicon.png"
+    },
+    "extra": {
+      "eas": {
+        "projectId": "070f0df0-ecbf-454a-9397-f9c1c5a1ef05"
+      }
     }
   }
 }
